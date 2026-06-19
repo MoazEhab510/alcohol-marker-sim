@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alcohol Marker Production Line Simulator — SRH Advanced Programming</title>
+  <style>
+    :root {
+      --bg: #0f1117; --surface: #1a1d27; --border: #2a2d3a;
+      --text: #e8eaf0; --muted: #9aa0b0; --accent: #6c8ef5; --green: #3ecf74;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.65; padding: 0 20px;
+    }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 56px 0 80px; }
+    header { border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 32px; }
+    h1 { font-size: 30px; letter-spacing: .3px; }
+    .sub { color: var(--muted); margin-top: 8px; font-size: 15px; }
+    h2 { font-size: 20px; margin: 36px 0 12px; color: var(--accent); }
+    p { margin-bottom: 14px; color: #d2d6e0; }
+    a { color: var(--accent); }
+    ul { margin: 0 0 14px 22px; color: #d2d6e0; }
+    li { margin-bottom: 6px; }
+    .badges span {
+      display: inline-block; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 10px; margin: 4px 6px 4px 0; font-size: 13px; color: var(--muted);
+    }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; }
+    figure {
+      margin: 18px 0; background: var(--surface); border: 1px dashed var(--border);
+      border-radius: 10px; padding: 14px; text-align: center;
+    }
+    figure img { max-width: 100%; border-radius: 6px; }
+    figcaption { color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .placeholder { color: var(--muted); font-size: 14px; padding: 40px 10px; }
+    code { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 13px; }
+    footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🖊 Alcohol Marker Production Line Simulator</h1>
+    <div class="sub">SRH Advanced Programming Project · Applied Mechatronics</div>
+    <div class="badges" style="margin-top:14px;">
+      <span>Python / Flask</span><span>HTML HMI</span><span>InfluxDB</span>
+      <span>Grafana</span><span>Docker Compose</span>
+    </div>
+  </header>
+
+  <h2>What this project is</h2>
+  <p>
+    This project simulates a four-stage manufacturing line that assembles
+    alcohol-based ink markers. A Python/Flask backend runs the production logic as
+    a finite-state machine (<code>IDLE → RUNNING → FAULTED</code>), an HTML
+    operator panel (HMI) controls and visualises the line, every cycle is written
+    to an InfluxDB time-series database, and Grafana dashboards display the live
+    process data. The whole stack starts with a single
+    <code>docker compose up</code>.
+  </p>
+  <p>
+    Each marker passes through tip insertion, alcohol fill, body assembly, and a
+    cap &amp; quality-control check. Any stage can reject a part — for example an
+    ethanol concentration outside the 70–90&nbsp;% quality window — at which point
+    the machine reports a clear fault reason and transitions to the
+    <code>FAULTED</code> state until an operator resets it.
+  </p>
+  <p>
+    The HMI exposes the three required operator controls (<strong>Start</strong>,
+    <strong>Stop</strong>, <strong>Reset</strong>), shows the current machine
+    state and active stage, counts good versus defective parts, and surfaces the
+    fault message when something goes wrong. Grafana provides the historical and
+    real-time view used by a supervisor.
+  </p>
+
+  <h2>Production stages</h2>
+  <table>
+    <tr><th>#</th><th>Stage</th><th>Defect condition</th></tr>
+    <tr><td>1</td><td>Tip Insertion</td><td>Nib holder misaligned</td></tr>
+    <tr><td>2</td><td>Alcohol Fill</td><td>Ethanol &lt; 70 % or &gt; 90 %</td></tr>
+    <tr><td>3</td><td>Body Assembly</td><td>Barrel click-lock failed</td></tr>
+    <tr><td>4</td><td>Cap &amp; QC Check</td><td>Cap absent / leak test failed</td></tr>
+  </table>
+
+  <h2>Screenshots</h2>
+  <figure>
+    <img src="img/hmi.png" alt="HMI screenshot" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <div class="placeholder" style="display:none">Add <code>docs/img/hmi.png</code> — a screenshot of the operator panel.</div>
+    <figcaption>Operator HMI — machine state, controls, live sensors and event log.</figcaption>
+  </figure>
+  <figure>
+    <img src="img/grafana.png" alt="Grafana dashboard screenshot" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+    <div class="placeholder" style="display:none">Add <code>docs/img/grafana.png</code> — a screenshot of the Grafana dashboard.</div>
+    <figcaption>Grafana dashboard — machine state, parts produced, temperature and ethanol.</figcaption>
+  </figure>
+
+  <h2>How it works</h2>
+  <ul>
+    <li><strong>Backend</strong> (<code>backend/main.py</code>) — Flask REST API + FSM; runs the four stages in a background thread and writes each transition to InfluxDB.</li>
+    <li><strong>Frontend</strong> (<code>frontend/index.html</code>) — polls <code>/status</code> once per second and renders state, sensors, and faults.</li>
+    <li><strong>Database</strong> — InfluxDB 2.7 bucket <code>markers</code>, measurement <code>production</code>.</li>
+    <li><strong>Dashboard</strong> — Grafana 10, auto-provisioned datasource and dashboard.</li>
+  </ul>
+
+  <h2>Source code</h2>
+  <p>
+    Full source, setup instructions, and the API reference are on GitHub:
+    <a href="REPLACE_WITH_YOUR_REPO_URL">REPLACE_WITH_YOUR_REPO_URL</a>.
+  </p>
+
+  <footer>
+    Built for the SRH Advanced Programming course. AI assistance (Claude) was used
+    during development — see the documentation appendix for prompts and corrections.
+  </footer>
+
+</div>
+</body>
+</html>
