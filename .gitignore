@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Docker bind-mount / local data (do not commit container state)
+influxdb-data/
+grafana-data/
+
+# Tooling
+.claude/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

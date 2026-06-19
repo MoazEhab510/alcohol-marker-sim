@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alcohol Marker Line — HMI</title>
+  <style>
+    /* ── Design tokens ─────────────────────────────────────── */
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --border:    #2a2d3a;
+      --text:      #e8eaf0;
+      --muted:     #6b7080;
+      --accent:    #6c8ef5;
+
+      --idle:      #6b7080;
+      --running:   #3ecf74;
+      --faulted:   #f05c5c;
+
+      --stage-dim: #252836;
+      --stage-act: #2b3550;
+      --stage-done:#1e2e1e;
+
+      --btn-start: #3ecf74;
+      --btn-stop:  #f0a435;
+      --btn-reset: #6c8ef5;
+
+      --font: "Helvetica Neue", Arial, sans-serif;
+      --mono: "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .brand-name { font-size: 15px; font-weight: 600; letter-spacing: .3px; }
+    .brand-sub  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    #clock {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* ── Main grid ──────────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    /* ── State panel (left) ─────────────────────────────────── */
+    .panel-state {
+      grid-row: 1 / 3;
+      background: var(--surface);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* FSM state badge */
+    .state-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+    .state-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--idle);
+      transition: background .3s;
+      flex-shrink: 0;
+    }
+    .state-dot.running { background: var(--running); box-shadow: 0 0 8px var(--running); }
+    .state-dot.faulted { background: var(--faulted); box-shadow: 0 0 8px var(--faulted);
+      animation: blink .8s step-start infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .state-label {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+    .state-label.running { color: var(--running); }
+    .state-label.faulted { color: var(--faulted); }
+
+    /* Metrics */
+    .metrics { display: flex; flex-direction: column; gap: 10px; }
+    .metric {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .metric-value { font-size: 26px; font-weight: 700; font-family: var(--mono); }
+    .metric-value.red   { color: var(--faulted); }
+    .metric-value.green { color: var(--running); }
+    .metric-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    /* Control buttons */
+    .controls { display: flex; flex-direction: column; gap: 10px; }
+    .btn {
+      width: 100%;
+      padding: 13px 0;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer;
+      letter-spacing: .4px;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active  { transform: scale(.97); }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-start { background: var(--btn-start); color: #0d2016; }
+    .btn-stop  { background: var(--btn-stop);  color: #1f1300; }
+    .btn-reset { background: var(--btn-reset); color: #0c1130; }
+
+    /* Fault message */
+    #fault-box {
+      display: none;
+      background: #1e0f0f;
+      border: 1px solid var(--faulted);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    #fault-box.visible { display: block; }
+    .fault-title { font-size: 11px; color: var(--faulted); letter-spacing: .8px; text-transform: uppercase; margin-bottom: 6px; }
+    #fault-text  { font-size: 13px; line-height: 1.5; }
+
+    /* ── Stage pipeline (top right) ─────────────────────────── */
+    .panel-stages {
+      background: var(--surface);
+      padding: 24px 28px;
+    }
+    .stages-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .stage-card {
+      background: var(--stage-dim);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 14px;
+      text-align: center;
+      transition: background .3s, border-color .3s;
+    }
+    .stage-card.active {
+      background: var(--stage-act);
+      border-color: var(--accent);
+    }
+    .stage-card.done {
+      background: var(--stage-done);
+      border-color: #2e5c2e;
+    }
+    .stage-num  { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .stage-icon { font-size: 26px; margin-bottom: 8px; }
+    .stage-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .stage-status { font-size: 11px; color: var(--muted); }
+    .stage-card.active .stage-status { color: var(--accent); }
+    .stage-card.done   .stage-status { color: var(--running); }
+
+    /* Spinner for active stage */
+    .spinner {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border: 2px solid var(--accent);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Sensor readings (bottom right) ────────────────────── */
+    .panel-sensors {
+      background: var(--surface);
+      padding: 24px 28px;
+    }
+    .sensors-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .sensor-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .sensor-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .sensor-value { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+    .sensor-unit  { font-size: 13px; color: var(--muted); margin-left: 2px; }
+
+    /* Bar for ethanol */
+    .bar-track {
+      height: 4px; background: var(--border);
+      border-radius: 2px; margin-top: 8px;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 2px;
+      background: var(--accent);
+      transition: width .5s;
+    }
+
+    /* Log feed */
+    .log-feed {
+      margin-top: 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      height: 120px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .log-entry { color: var(--muted); }
+    .log-entry.ok     { color: var(--running); }
+    .log-entry.fault  { color: var(--faulted); }
+    .log-entry.info   { color: var(--accent);  }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">🖊</div>
+    <div>
+      <div class="brand-name">Alcohol Marker Production Line</div>
+      <div class="brand-sub">SRH Advanced Programming · HMI v1.0</div>
+    </div>
+  </div>
+  <div id="clock">--:--:--</div>
+</header>
+
+<main>
+
+  <!-- Left panel: state + controls -->
+  <aside class="panel-state">
+
+    <div>
+      <div class="section-label">Machine state</div>
+      <div class="state-badge">
+        <div class="state-dot" id="state-dot"></div>
+        <div class="state-label" id="state-label">IDLE</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="section-label">Production counters</div>
+      <div class="metric">
+        <div class="metric-label">Parts produced</div>
+        <div class="metric-value green" id="parts-ok">0</div>
+        <div class="metric-sub">good markers</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Parts defective</div>
+        <div class="metric-value red" id="parts-bad">0</div>
+        <div class="metric-sub">sent to rejection bin</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Last cycle time</div>
+        <div class="metric-value" id="cycle-time">—</div>
+        <div class="metric-sub">seconds</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="section-label">Operator controls</div>
+      <button class="btn btn-start" id="btn-start" onclick="sendCmd('start')">▶ Start</button>
+      <button class="btn btn-stop"  id="btn-stop"  onclick="sendCmd('stop')" disabled>⏹ Stop</button>
+      <button class="btn btn-reset" id="btn-reset" onclick="sendCmd('reset')" disabled>↺ Reset</button>
+    </div>
+
+    <div id="fault-box">
+      <div class="fault-title">⚠ Fault detected</div>
+      <div id="fault-text"></div>
+    </div>
+
+  </aside>
+
+  <!-- Top-right panel: 4-stage pipeline -->
+  <section class="panel-stages">
+    <div class="section-label">Production pipeline</div>
+    <div class="stages-grid">
+      <div class="stage-card" id="stage-1">
+        <div class="stage-num">Stage 01</div>
+        <div class="stage-icon">📌</div>
+        <div class="stage-name">Tip Insertion</div>
+        <div class="stage-status">Waiting</div>
+      </div>
+      <div class="stage-card" id="stage-2">
+        <div class="stage-num">Stage 02</div>
+        <div class="stage-icon">💧</div>
+        <div class="stage-name">Alcohol Fill</div>
+        <div class="stage-status">Waiting</div>
+      </div>
+      <div class="stage-card" id="stage-3">
+        <div class="stage-num">Stage 03</div>
+        <div class="stage-icon">🔩</div>
+        <div class="stage-name">Body Assembly</div>
+        <div class="stage-status">Waiting</div>
+      </div>
+      <div class="stage-card" id="stage-4">
+        <div class="stage-num">Stage 04</div>
+        <div class="stage-icon">🔍</div>
+        <div class="stage-name">Cap &amp; QC Check</div>
+        <div class="stage-status">Waiting</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom-right panel: sensors + log -->
+  <section class="panel-sensors">
+    <div class="section-label">Live sensor readings</div>
+    <div class="sensors-grid">
+      <div class="sensor-card">
+        <div class="sensor-label">Temperature</div>
+        <div><span class="sensor-value" id="s-temp">—</span><span class="sensor-unit">°C</span></div>
+      </div>
+      <div class="sensor-card">
+        <div class="sensor-label">Ethanol concentration</div>
+        <div><span class="sensor-value" id="s-ethanol">—</span><span class="sensor-unit">%</span></div>
+        <div class="bar-track"><div class="bar-fill" id="ethanol-bar" style="width:0%"></div></div>
+      </div>
+      <div class="sensor-card">
+        <div class="sensor-label">Active stage</div>
+        <div class="sensor-value" id="s-stage" style="font-size:14px;line-height:1.4;">—</div>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:18px;">Event log</div>
+    <div class="log-feed" id="log-feed"></div>
+  </section>
+
+</main>
+
+<script>
+  const BACKEND = "http://localhost:5000";
+
+  // ── Clock ────────────────────────────────────────────────────
+  function updateClock() {
+    document.getElementById("clock").textContent =
+      new Date().toLocaleTimeString("en-GB");
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ── Log feed ─────────────────────────────────────────────────
+  let lastState = null;
+  let lastStage = 0;
+  let lastParts = 0;
+
+  function log(msg, cls = "") {
+    const feed = document.getElementById("log-feed");
+    const entry = document.createElement("div");
+    entry.className = "log-entry " + cls;
+    const ts = new Date().toLocaleTimeString("en-GB");
+    entry.textContent = `[${ts}] ${msg}`;
+    feed.prepend(entry);
+    // Keep max 80 lines
+    while (feed.children.length > 80) feed.removeChild(feed.lastChild);
+  }
+
+  // ── Stage cards ──────────────────────────────────────────────
+  function setStageCards(activeStage, fsm) {
+    for (let i = 1; i <= 4; i++) {
+      const card   = document.getElementById(`stage-${i}`);
+      const status = card.querySelector(".stage-status");
+      card.classList.remove("active", "done");
+
+      if (fsm !== "RUNNING") {
+        status.innerHTML = "Waiting";
+      } else if (i < activeStage) {
+        card.classList.add("done");
+        status.innerHTML = "✓ Done";
+      } else if (i === activeStage) {
+        card.classList.add("active");
+        status.innerHTML = `<span class="spinner"></span>Running`;
+      } else {
+        status.innerHTML = "Queued";
+      }
+    }
+  }
+
+  // ── Button state ─────────────────────────────────────────────
+  function setButtons(fsm) {
+    document.getElementById("btn-start").disabled = fsm !== "IDLE";
+    document.getElementById("btn-stop") .disabled = fsm !== "RUNNING";
+    document.getElementById("btn-reset").disabled = fsm !== "FAULTED";
+  }
+
+  // ── Main status poll ─────────────────────────────────────────
+  async function poll() {
+    try {
+      const res  = await fetch(`${BACKEND}/status`);
+      const data = await res.json();
+
+      // FSM state badge
+      const dot   = document.getElementById("state-dot");
+      const label = document.getElementById("state-label");
+      dot.className   = "state-dot " + data.fsm_state.toLowerCase();
+      label.className = "state-label " + data.fsm_state.toLowerCase();
+      label.textContent = data.fsm_state;
+
+      // Counters
+      document.getElementById("parts-ok") .textContent = data.parts_produced;
+      document.getElementById("parts-bad").textContent = data.parts_defective;
+      document.getElementById("cycle-time").textContent =
+        data.cycle_time_s > 0 ? data.cycle_time_s.toFixed(2) + " s" : "—";
+
+      // Sensors
+      document.getElementById("s-temp").textContent =
+        data.temperature !== undefined ? data.temperature.toFixed(1) : "—";
+      document.getElementById("s-ethanol").textContent =
+        data.ethanol_pct > 0 ? data.ethanol_pct.toFixed(1) : "—";
+      document.getElementById("ethanol-bar").style.width =
+        data.ethanol_pct > 0 ? data.ethanol_pct + "%" : "0%";
+      document.getElementById("s-stage").textContent =
+        data.stage_name !== "—" ? data.stage_name : "—";
+
+      // Stage cards
+      setStageCards(data.current_stage, data.fsm_state);
+
+      // Buttons
+      setButtons(data.fsm_state);
+
+      // Fault box
+      const faultBox = document.getElementById("fault-box");
+      if (data.fsm_state === "FAULTED" && data.fault_reason) {
+        faultBox.classList.add("visible");
+        document.getElementById("fault-text").textContent = data.fault_reason;
+      } else {
+        faultBox.classList.remove("visible");
+      }
+
+      // Log events on state transitions
+      if (lastState !== data.fsm_state) {
+        const msgs = {
+          IDLE:    ["Machine idle", "info"],
+          RUNNING: ["Production started", "ok"],
+          FAULTED: [`FAULT: ${data.fault_reason}`, "fault"],
+        };
+        const [msg, cls] = msgs[data.fsm_state] || ["State changed", ""];
+        log(msg, cls);
+        lastState = data.fsm_state;
+      }
+
+      // Log completed parts
+      if (data.parts_produced > lastParts) {
+        log(`Marker #${data.parts_produced} complete — ${data.cycle_time_s}s`, "ok");
+        lastParts = data.parts_produced;
+      }
+
+      // Log active stage changes
+      if (data.current_stage > 0 && data.current_stage !== lastStage) {
+        log(`→ Stage ${data.current_stage}: ${data.stage_name}`, "info");
+        lastStage = data.current_stage;
+      } else if (data.current_stage === 0) {
+        lastStage = 0;
+      }
+
+    } catch (err) {
+      // Backend not reachable — show disconnected state
+      document.getElementById("state-label").textContent = "OFFLINE";
+    }
+  }
+
+  // ── Send commands ────────────────────────────────────────────
+  async function sendCmd(cmd) {
+    try {
+      const res  = await fetch(`${BACKEND}/${cmd}`, { method: "POST" });
+      const data = await res.json();
+      log(data.message, data.ok ? "info" : "fault");
+      await poll();
+    } catch (err) {
+      log("Command failed — is the backend running?", "fault");
+    }
+  }
+
+  // Poll every second
+  setInterval(poll, 1000);
+  poll();
+  log("HMI started — waiting for backend connection", "info");
+</script>
+</body>
+</html>
