@@ -62,7 +62,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"markers\")\n  |> range(start: -1m)\n  |> filter(fn: (r) => r._measurement == \"production\" and r._field == \"fsm_state\")\n  |> last()",
+          "query": "from(bucket: \"markers\")\n  |> range(start: -15m)\n  |> filter(fn: (r) => r._measurement == \"production\" and r._field == \"fsm_state\")\n  |> last()",
           "refId": "A"
         }
       ],
