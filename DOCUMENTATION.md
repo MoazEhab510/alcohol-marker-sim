@@ -9,7 +9,7 @@ SRH Advanced Programming Project — Applied Mechatronics — June 2026
 | **Document title** | `[StudentID]_[Lastname]_AP` |
 | **Author** | `[Your Full Name]` |
 | **Student ID** | `[Your Student ID]` |
-| **Project website** | `REPLACE_WITH_YOUR_PAGES_URL` |
+| **Project website** | `https://moazehab510.github.io/alcohol-marker-sim/` |
 
 > **Note:** the assignment deliverable is a **PDF** produced from the course
 > `Project_Template`. This Markdown file is the working draft of that content —
@@ -221,7 +221,7 @@ there and in the conclusion.
 
 The project is published as a website (GitHub Pages) that describes what the
 simulator does, shows screenshots of the HMI and the Grafana dashboard, and links
-to the source repository. The site is available at `REPLACE_WITH_YOUR_PAGES_URL`.
+to the source repository. The site is available at `https://moazehab510.github.io/alcohol-marker-sim/`.
 
 ---
 
