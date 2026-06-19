@@ -149,6 +149,19 @@ def write_to_influx():
     except Exception as exc:
         log.error("Influx write FAILED: %s", exc)
 
+# ── Telemetry heartbeat (runs for the whole life of the process) ─────────────
+HEARTBEAT_SECONDS = 2
+
+def telemetry_heartbeat():
+    """
+    Write the current machine state to InfluxDB on a fixed interval, whether the
+    line is running or idle. This keeps fresh data in the dashboard at all times
+    so panels never fall back to "No data" when the machine is sitting idle.
+    """
+    while True:
+        write_to_influx()
+        time.sleep(HEARTBEAT_SECONDS)
+
 # ── Production loop (runs in background thread) ───────────────────────────────
 def production_loop():
     """
@@ -272,4 +285,7 @@ def reset_machine():
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     log.info("[Server] Alcohol Marker Production Line – backend starting on port 5000")
+    # Continuous telemetry so the dashboard always has fresh data, even when idle.
+    threading.Thread(target=telemetry_heartbeat, daemon=True).start()
+    log.info("[Server] Telemetry heartbeat started (every %ss)", HEARTBEAT_SECONDS)
     app.run(host="0.0.0.0", port=5000, debug=False)
