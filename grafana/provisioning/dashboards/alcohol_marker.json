@@ -25,28 +25,9 @@
             {
               "type": "value",
               "options": {
-                "IDLE": {
-                  "text": "IDLE",
-                  "color": "gray"
-                }
-              }
-            },
-            {
-              "type": "value",
-              "options": {
-                "RUNNING": {
-                  "text": "RUNNING",
-                  "color": "green"
-                }
-              }
-            },
-            {
-              "type": "value",
-              "options": {
-                "FAULTED": {
-                  "text": "FAULTED",
-                  "color": "red"
-                }
+                "0": { "text": "IDLE",    "color": "gray",  "index": 0 },
+                "1": { "text": "RUNNING", "color": "green", "index": 1 },
+                "2": { "text": "FAULTED", "color": "red",   "index": 2 }
               }
             }
           ]
@@ -68,7 +49,7 @@
             "type": "influxdb",
             "uid": "influxdb"
           },
-          "query": "from(bucket: \"markers\")\n  |> range(start: -15m)\n  |> filter(fn: (r) => r._measurement == \"production\" and r._field == \"fsm_state\")\n  |> last()",
+          "query": "from(bucket: \"markers\")\n  |> range(start: -15m)\n  |> filter(fn: (r) => r._measurement == \"production\" and r._field == \"fsm_state\")\n  |> last()\n  |> map(fn: (r) => ({r with _value: if r._value == \"RUNNING\" then 1.0 else if r._value == \"FAULTED\" then 2.0 else 0.0}))",
           "refId": "A"
         }
       ],
