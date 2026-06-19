@@ -54,7 +54,13 @@
       },
       "options": {
         "colorMode": "background",
-        "graphMode": "none"
+        "graphMode": "none",
+        "textMode": "value",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "/^fsm_state$/",
+          "values": false
+        }
       },
       "targets": [
         {
