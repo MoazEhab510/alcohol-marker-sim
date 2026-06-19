@@ -133,9 +133,11 @@ fulfils all HMI requirements:
 
 ### 2.3 Database – InfluxDB
 
-After every stage and every state change, the backend writes a data point to
-InfluxDB using the measurement `production`, a tag identifying the line, and one
-field per parameter, timestamped in UTC. The parameters sent to the database are:
+The backend writes a data point to InfluxDB after every stage and every state
+change, and additionally on a continuous **telemetry heartbeat** (every two
+seconds) so the dashboard always has fresh data even when the line is idle. Each
+point uses the measurement `production`, a tag identifying the line, and one field
+per parameter, timestamped in UTC. The parameters sent to the database are:
 
 | Field | Meaning |
 |-------|---------|
