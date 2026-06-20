@@ -2,7 +2,7 @@
   "title": "Alcohol Marker Production Line",
   "uid": "alcohol-marker-001",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
   "refresh": "5s",
   "time": {
     "from": "now-15m",
@@ -39,7 +39,7 @@
         "textMode": "value",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
-          "fields": "/^fsm_state$/",
+          "fields": "",
           "values": false
         }
       },
