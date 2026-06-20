@@ -2,7 +2,7 @@
 Alcohol Marker Production Line Simulator
 SRH Advanced Programming Project
 
-Author: [Your Name]
+Author: Moaz Ehab (100006672)
 AI Assistance: Claude (Anthropic) - see appendix for prompts and corrections
 
 Production stages:

@@ -6,9 +6,9 @@ SRH Advanced Programming Project — Applied Mechatronics — June 2026
 
 | | |
 |---|---|
-| **Document title** | `[StudentID]_[Lastname]_AP` |
-| **Author** | `[Your Full Name]` |
-| **Student ID** | `[Your Student ID]` |
+| **Document title** | `100006672_Ehab_AP` |
+| **Author** | `Moaz Ehab` |
+| **Student ID** | `100006672` |
 | **Project website** | `https://moazehab510.github.io/alcohol-marker-sim/` |
 
 > **Note:** the assignment deliverable is a **PDF** produced from the course
